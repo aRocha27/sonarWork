@@ -1,104 +1,190 @@
 # main.py
 import os
 import time
-import argparse
+from datetime import datetime
+from config import INPUT_DIR, OUTPUT_DIR
+from preprocessing import load_all_sonar_data, preprocess, get_data_point_ids
+from detection import detect_with_sonar_data, load_model
+from visualization import draw_detections, create_summary_image
+from export import save_results, save_summary_report, export_all_detections_combined
 
-from config import DEFAULT_INPUT_DIR, DEFAULT_OUTPUT_DIR
-from preprocessing import load_data, preprocess
-from detection import detect_objects
-from visualization import draw_detections
-from export import save_results
 
-
-def find_png_for_base(input_dir: str, base: str):
+def process_single_data_point(data_point_id, input_dir=INPUT_DIR):
     """
-    Finds a PNG that belongs to datapoint base.
-    Priority:
-      1) exact: base + ".png"
-      2) any png that starts with base + "_"
-      3) any png that starts with base
+    Process a single data point and return results.
     """
-    exact = os.path.join(input_dir, base + ".png")
-    if os.path.exists(exact):
-        return exact
+    # Load all sonar-related data
+    sonar_data = load_all_sonar_data(input_dir, data_point_id)
+    
+    if sonar_data['image'] is None:
+        print(f"⚠️  No image found for data point {data_point_id}")
+        return None
+    
+    # Preprocess the image
+    processed_image, _ = preprocess(sonar_data['image'])
+    
+    # Run detection with sonar data
+    detections = detect_with_sonar_data(
+        processed_image,
+        echo_data=sonar_data['echo_data'],
+        sonar_data=sonar_data['sonar_data'],
+        metadata=sonar_data['metadata']
+    )
+    
+    # Draw detections on image
+    annotated_image = draw_detections(processed_image, detections)
+    
+    # Save results
+    output_path = save_results(
+        base_name=data_point_id,
+        detections=detections,
+        annotated_image=annotated_image,
+        original_image=sonar_data['image'],
+        metadata=sonar_data['metadata']
+    )
+    
+    return {
+        'id': data_point_id,
+        'detections': detections,
+        'total_detections': len(detections),
+        'objects': list(set(d['label'] for d in detections)),
+        'output_path': output_path,
+        'timestamp': datetime.now().isoformat()
+    }
 
-    for f in os.listdir(input_dir):
-        if f.lower().endswith(".png") and f.startswith(base + "_"):
-            return os.path.join(input_dir, f)
 
-    for f in os.listdir(input_dir):
-        if f.lower().endswith(".png") and f.startswith(base):
-            return os.path.join(input_dir, f)
+def process_all_data_points(input_dir=INPUT_DIR):
+    """
+    Process all available data points in the input directory.
+    """
+    print(f"\n{'='*60}")
+    print("🔍 OBJECT AND MATERIAL DETECTION SYSTEM")
+    print(f"{'='*60}\n")
+    
+    # Create output directory
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # Get all data point IDs
+    data_point_ids = get_data_point_ids(input_dir)
+    
+    if not data_point_ids:
+        print(f"❌ No data points found in {input_dir}")
+        print("   Expected files: *_dp_pre_pros_sonar_scan.png")
+        return
+    
+    print(f"📂 Found {len(data_point_ids)} data points to process")
+    print(f"   IDs: {data_point_ids}\n")
+    
+    # Load model once
+    print("🤖 Loading YOLO model...")
+    load_model()
+    print("✅ Model loaded successfully!\n")
+    
+    # Process each data point
+    processed_data = []
+    all_detections = {}
+    
+    for i, dp_id in enumerate(data_point_ids):
+        print(f"[{i+1}/{len(data_point_ids)}] Processing data point {dp_id}...")
+        
+        try:
+            result = process_single_data_point(dp_id, input_dir)
+            
+            if result:
+                processed_data.append(result)
+                all_detections[dp_id] = result['detections']
+                
+                print(f"   ✅ Detected {result['total_detections']} object(s)")
+                if result['objects']:
+                    print(f"   📦 Objects: {', '.join(result['objects'])}")
+            else:
+                print(f"   ⚠️  Skipped (no valid data)")
+                
+        except Exception as e:
+            print(f"   ❌ Error: {e}")
+    
+    # Generate summary report
+    if processed_data:
+        save_summary_report(processed_data)
+        export_all_detections_combined(all_detections)
+    
+    print(f"\n{'='*60}")
+    print(f"✅ PROCESSING COMPLETE")
+    print(f"   Total data points: {len(processed_data)}")
+    print(f"   Output directory: {OUTPUT_DIR}/")
+    print(f"{'='*60}\n")
+    
+    return processed_data
 
-    return None
 
-
-def run_watch_loop(input_dir: str, output_dir: str, poll_s: float = 2.0):
-    print("=== Sonar Object Detection System ===")
-    print(f"[WATCH] Input : {input_dir}")
-    print(f"[WATCH] Output: {output_dir}")
-    print(f"[WATCH] Poll  : {poll_s:.1f}s")
-    print("Press Ctrl+C to stop.\n")
-
+def monitor_mode(input_dir=INPUT_DIR, poll_interval=2.0):
+    """
+    Continuous monitoring mode - watches for new files and processes them.
+    """
+    print(f"\n{'='*60}")
+    print("🔄 CONTINUOUS MONITORING MODE")
+    print(f"{'='*60}")
+    print(f"📂 Watching directory: {input_dir}")
+    print(f"⏱️  Poll interval: {poll_interval}s")
+    print("Press Ctrl+C to stop\n")
+    
     processed = set()
-    os.makedirs(output_dir, exist_ok=True)
-
+    
+    # Load model once
+    print("🤖 Loading YOLO model...")
+    load_model()
+    print("✅ Model loaded! Starting monitoring...\n")
+    
     try:
         while True:
-            sonar_files = [f for f in os.listdir(input_dir) if f.lower().endswith("_sonar.npy")]
-
-            if not sonar_files:
-                print("[INFO] Waiting for *_sonar.npy files...")
-                time.sleep(poll_s)
-                continue
-
-            for sonar_file in sonar_files:
-                base = sonar_file.replace("_sonar.npy", "")
-                npy_path = os.path.join(input_dir, sonar_file)
-
-                if base in processed:
+            # Get current data point IDs
+            data_point_ids = get_data_point_ids(input_dir)
+            
+            # Process new data points
+            for dp_id in data_point_ids:
+                if dp_id in processed:
                     continue
-
-                png_path = find_png_for_base(input_dir, base)  # may be None
-
+                
+                print(f"\n📥 New data point detected: {dp_id}")
+                
                 try:
-                    image, data = load_data(png_path, npy_path)
-                    image, data = preprocess(image, data)
-
-                    detections = detect_objects(image, data)
-                    overlay = draw_detections(image, detections)
-
-                    out_subdir = os.path.join(output_dir, base)
-                    save_results(base, out_subdir, detections, overlay)
-
-                    processed.add(base)
-                    print(f"[OK] {base}: {len(detections)} object(s) | png={'yes' if png_path else 'no'}")
-
+                    result = process_single_data_point(dp_id, input_dir)
+                    
+                    if result:
+                        processed.add(dp_id)
+                        print(f"   ✅ Processed: {result['total_detections']} object(s) detected")
+                    
                 except Exception as e:
-                    print(f"[ERR] {base}: {e}")
-
-            time.sleep(poll_s)
-
+                    print(f"   ❌ Error processing: {e}")
+            
+            # Wait before next scan
+            time.sleep(poll_interval)
+            
     except KeyboardInterrupt:
-        print("\n[SAFE EXIT] Stopped by user (Ctrl+C). Goodbye!")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default=DEFAULT_INPUT_DIR)
-    parser.add_argument("--out", default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--poll", type=float, default=2.0)
-    args = parser.parse_args()
-
-    input_dir = os.path.abspath(args.input)
-    output_dir = os.path.abspath(args.out)
-
-    if not os.path.isdir(input_dir):
-        print(f"[FATAL] Input folder does not exist: {input_dir}")
-        raise SystemExit(1)
-
-    run_watch_loop(input_dir, output_dir, args.poll)
+        print(f"\n\n{'='*60}")
+        print("🛑 Monitoring stopped by user")
+        print(f"   Total processed: {len(processed)} data points")
+        print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    
+    # Check command line arguments
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--monitor" or sys.argv[1] == "-m":
+            # Run in continuous monitoring mode
+            monitor_mode()
+        elif sys.argv[1] == "--help" or sys.argv[1] == "-h":
+            print("\n📖 Usage:")
+            print("  python main.py           - Process all existing data points")
+            print("  python main.py --monitor - Run in continuous monitoring mode")
+            print("  python main.py -m        - Same as --monitor")
+            print("  python main.py --help    - Show this help message")
+            print()
+        else:
+            print(f"Unknown argument: {sys.argv[1]}")
+            print("Use --help for usage information")
+    else:
+        # Default: process all existing data points
+        process_all_data_points()
