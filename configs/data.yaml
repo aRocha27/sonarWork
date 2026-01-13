@@ -1,0 +1,7 @@
+path: C:/Users/antro/Documents/UPS/sonarWork/data
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: object

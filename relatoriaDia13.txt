@@ -1,0 +1,303 @@
+
+Perfeito. Vou fazer exatamente o que pediste: analisar os dois mini-relatórios, cruzá-los com o que realmente aconteceu no chat e no código, eliminar imprecisões, e entregar um relatório diário único, coerente, académico e fiel ao trabalho real do Dia 13.
+
+⚠️ Nota importante
+Nos textos que enviaste há algumas imprecisões factuais (ex.: métricas por classe, mAP ≈ 0.65, classificação direta por YOLO ainda ativa). Eu corrijo isso abaixo para não criares problemas numa avaliação.
+
+Relatório Diário de Progresso
+Projeto: Deteção de Objetos em Imagens de Sonar com YOLOv8 e Classificação Híbrida
+Dia 13
+1. Contexto e Objetivo da Sessão
+
+O objetivo geral do projeto é desenvolver um sistema robusto para deteção automática de objetos em imagens de sonar, seguido de classificação da intensidade de reflexão acústica em três níveis: low, medium e high.
+
+Nesta sessão, o foco esteve em fechar a fase de remodulação arquitetural do projeto e em validar experimentalmente a abordagem híbrida, após a conclusão do treino do modelo YOLOv8 em modo single-class.
+
+2. Decisão Arquitetural Consolidada
+
+Durante esta sessão foi confirmada e implementada definitivamente a principal decisão arquitetural do projeto:
+
+O YOLOv8 é utilizado exclusivamente como detetor binário (object vs background).
+
+A classificação low / medium / high não é aprendida pelo YOLO, sendo realizada a posteriori, através de análise da intensidade do eco dentro de cada bounding box.
+
+Esta decisão foi motivada por:
+
+A natureza contínua da intensidade acústica (não categórica).
+
+A confusão sistemática observada quando se tentou treinar múltiplas classes de reflexão.
+
+A necessidade de explicabilidade física da classificação.
+
+Esta reformulação representa uma melhoria estrutural do projeto, tornando-o mais robusto, controlável e academicamente defensável.
+
+3. Treino do Modelo YOLO
+
+Foi concluído o treino de um modelo YOLOv8n, com as seguintes configurações:
+
+Resolução: 640 × 640
+
+Epochs: 200
+
+Batch size: 8
+
+Device: CPU
+
+Classes: 1 (object)
+
+O treino decorreu corretamente após:
+
+Normalização de todas as labels para a classe 0
+
+Remoção de ficheiros .cache antigos
+
+Correção de inconsistências no data.yaml
+
+Resultados finais (validação):
+
+mAP@0.5 ≈ 0.57
+
+Recall ≈ 0.58
+
+Precision ≈ 0.54
+
+Estes valores são considerados adequados tendo em conta:
+
+O tamanho reduzido do dataset
+
+A elevada complexidade visual das imagens de sonar
+
+O facto de o modelo ser usado apenas como detetor de regiões de interesse
+
+4. Inferência YOLO e Avaliação Visual
+
+Foi realizada inferência sobre o conjunto de validação, permitindo confirmar que:
+
+As bounding boxes são corretamente posicionadas na maioria dos casos
+
+Os principais erros estão associados a:
+
+reverberação
+
+reflexões fortes no fundo
+
+ruído típico de sonar
+
+Estas falhas foram consideradas expectáveis e relevantes para discussão futura.
+
+5. Desenvolvimento e Validação do Pipeline Híbrido
+
+Foi implementado e testado um pipeline híbrido completo (infer_hybrid.py), integrando:
+
+Deteção de objetos com YOLOv8
+
+Extração da região da bounding box
+
+Cálculo de uma métrica de intensidade acústica
+
+Classificação final em low / medium / high
+
+Evolução do método de intensidade
+
+Durante a sessão foram testadas várias abordagens, incluindo:
+
+percentis (p95, p90)
+
+top-k mean
+
+intensidade HSV
+
+canal vermelho direto
+
+Estas abordagens mostraram-se sensíveis a picos e saturação do colormap, levando a classificações enviesadas para high.
+
+Solução final adotada
+
+Foi definida uma métrica baseada em densidade e dominância do eco forte, usando:
+
+red_excess = max(0, R − max(G, B))
+
+Score híbrido:
+
+score
+=
+0.7
+⋅
+mean(red_excess)
++
+0.3
+⋅
+frac_strong
+score=0.7⋅mean(red_excess)+0.3⋅frac_strong
+
+onde frac_strong representa a fração de pixels com eco forte dentro da ROI.
+
+Esta métrica revelou-se:
+
+robusta a ruído
+
+coerente com a perceção visual
+
+capaz de distinguir efetivamente low, medium e high
+
+Calibração final
+
+Após análise do conjunto de validação, foram definidos empiricamente:
+
+t_low = 0.02
+
+t_high = 0.025
+
+Estes valores produzem uma separação equilibrada das classes e refletem corretamente a escala reduzida do score.
+
+6. Estado Final do Dia
+
+✅ Arquitetura híbrida definida e implementada
+✅ Treino YOLO concluído com sucesso
+✅ Inferência YOLO validada visualmente
+✅ Pipeline híbrido funcional e calibrado
+✅ Classificação low / medium / high coerente
+✅ Código estabilizado (sem erros estruturais)
+
+
+8. Dificuldades Encontradas e Soluções Adotadas
+
+Ao longo da sessão de trabalho do Dia 13 foram identificadas várias dificuldades técnicas e conceptuais, típicas de projetos aplicados em visão computacional com dados reais de sonar. Estas dificuldades foram analisadas de forma sistemática e conduziram a melhorias significativas no pipeline final.
+
+8.1 Problemas na Classificação Direta por YOLO
+
+Inicialmente, foi considerada a utilização do YOLOv8 para classificar diretamente os níveis de reflexão (low / medium / high). No entanto, esta abordagem revelou-se inadequada devido a:
+
+fronteiras semânticas pouco definidas entre classes de intensidade
+
+confusão frequente entre medium e high
+
+múltiplas deteções do mesmo objeto com classes diferentes
+
+ausência de ligação física direta entre a classe prevista e a intensidade real do eco
+
+Solução:
+A abordagem foi reformulada para um modelo híbrido, onde o YOLO é utilizado apenas para deteção de regiões de interesse (object vs background), sendo a classificação de intensidade realizada externamente através de processamento dedicado.
+
+8.2 Saturação de Métricas Baseadas em Pico de Intensidade
+
+Durante o desenvolvimento do pipeline híbrido, foram testadas métricas baseadas em percentis elevados (p95, p90) e em top-k mean. Estas métricas apresentaram comportamento indesejado:
+
+saturação frequente do score para valores próximos de 1.0
+
+classificação sistemática de quase todos os objetos como high
+
+elevada sensibilidade a poucos pixels muito intensos (ruído ou speckle)
+
+Este efeito foi agravado pela utilização de imagens com colormap falso-cor, onde picos isolados podem atingir valores máximos mesmo em regiões globalmente fracas.
+
+Solução:
+As métricas baseadas em picos foram abandonadas em favor de uma métrica baseada em densidade e energia global do eco, reduzindo a influência de valores extremos.
+
+8.3 Limitações do Canal HSV e do Canal Vermelho Direto
+
+Foram também avaliadas abordagens baseadas no canal V do espaço HSV e no canal vermelho direto do RGB. Estas soluções mostraram-se insuficientes porque:
+
+o canal V tende a saturar em várias cores do colormap
+
+zonas predominantemente verdes ou amarelas podem apresentar valores elevados no canal R
+
+a simples presença de poucos pixels vermelhos levava a classificações incorretas como high
+
+Solução:
+Foi introduzido o conceito de excesso de vermelho (red_excess), definido como:
+
+red_excess
+=
+max
+⁡
+(
+0
+,
+𝑅
+−
+max
+⁡
+(
+𝐺
+,
+𝐵
+)
+)
+red_excess=max(0,R−max(G,B))
+
+Esta medida quantifica apenas a dominância real do vermelho, eliminando contribuições de cores intermédias e reduzindo falsos positivos.
+
+8.4 Classificação Incoerente Devido a Normalização Local
+
+Verificou-se ainda que a normalização local por bounding box conduzia a scores artificialmente elevados, uma vez que cada objeto era avaliado apenas relativamente a si próprio.
+
+Solução:
+A normalização local foi desativada, garantindo que os scores permanecem comparáveis entre diferentes objetos e imagens, preservando a interpretação global da intensidade acústica.
+
+8.5 Definição Final da Métrica Híbrida
+
+Após várias iterações experimentais, foi adotada a seguinte métrica híbrida final:
+
+score
+=
+0.7
+⋅
+mean(red_excess)
++
+0.3
+⋅
+frac_strong
+score=0.7⋅mean(red_excess)+0.3⋅frac_strong
+
+onde frac_strong representa a fração de pixels cujo red_excess ultrapassa um limiar definido.
+
+Esta métrica permite:
+
+distinguir picos isolados de manchas densas
+
+penalizar reflexões fracas com poucos pixels intensos
+
+alinhar a classificação com a perceção visual e interpretação física do sonar
+
+8.6 Calibração dos Thresholds
+
+Devido à natureza conservadora da métrica adotada, os valores absolutos do score são baixos. Após análise empírica do conjunto de validação, foram definidos:
+
+t_low = 0.02
+
+t_high = 0.025
+
+Estes valores garantem uma separação coerente entre low, medium e high, sem enviesamento sistemático para nenhuma classe.
+
+8.7 Correção de Erros de Implementação
+
+Durante o desenvolvimento do código foram ainda identificados e corrigidos vários erros técnicos, incluindo:
+
+uso de variáveis não inicializadas (UnboundLocalError)
+
+chamadas de funções fora do contexto correto
+
+conflitos de nomes entre variáveis e imports
+
+erros de path e execução em ambiente PowerShell
+
+A resolução destes problemas contribuiu para a estabilização final do pipeline.
+
+Síntese
+
+As dificuldades encontradas ao longo desta sessão foram essenciais para a evolução do projeto, conduzindo a decisões mais fundamentadas e a um pipeline final mais robusto, explicável e adequado ao domínio do sonar.
+
+Em vez de comprometer o projeto, estes desafios permitiram consolidar uma abordagem híbrida que supera as limitações da classificação direta por redes neuronais em dados acústicos complexos.
+
+8. Próximos Passos
+
+Avaliação quantitativa dos resultados (Dia 14)
+
+Seleção de exemplos representativos (bons e falhas)
+
+Implementação de um método clássico baseline (Dia 15)
+
+Comparação entre abordagens
+
+Escrita das secções Resultados e Discussão

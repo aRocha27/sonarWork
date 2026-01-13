@@ -1,0 +1,14 @@
+python .\src\infer_hybrid.py `
+>>   --weights "C:\Users\antro\Documents\UPS\sonarWork\runs\detect\obj_base2002\weights\best.pt" `
+>>   --source "C:\Users\antro\Documents\UPS\sonarWork\data\images\val" `
+>>   --out "C:\Users\antro\Documents\UPS\sonarWork\outputs\pred_hybrid_excess_tuned" `     
+>>   --conf 0.25 `
+>>   --iou 0.5 `
+>>   --int_mode red_excess `
+>>   --score mean_frac `
+>>   --no_clip `
+>>   --strong_thr 0.20 `
+>>   --w_mean 0.7 `
+>>   --w_frac 0.3 `
+>>   --t_low 0.02 `
+>>   --t_high 0.025
