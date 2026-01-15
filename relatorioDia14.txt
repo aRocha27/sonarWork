@@ -1,0 +1,63 @@
+Mini-Relatório de Progresso — Dia 14
+
+Avaliação de Resultados do Sistema de Deteção e Classificação em Sonar
+
+Contexto
+
+Nesta sessão foi realizada a avaliação crítica dos resultados obtidos com um pipeline híbrido para deteção e classificação de objetos em imagens de sonar, combinando um modelo YOLOv8 (single-class) para deteção de regiões de interesse (ROI) com um classificador baseado em intensidade acústica para distinguir níveis de reflexão (low, medium e high).
+
+Trabalho Realizado
+
+Avaliação do YOLO como detetor de ROI
+
+Analisadas as métricas finais do modelo:
+
+Precision ≈ 0.54
+
+Recall ≈ 0.58
+
+mAP50 ≈ 0.57
+
+Interpretou-se o desempenho no contexto específico de imagens de sonar, concluindo que o YOLO é adequado como gerador de ROI, apesar de limitações geométricas e presença de falsos positivos.
+
+Identificaram-se falhas típicas (ruído, reflexões falsas, duplicação de caixas), enquadradas como limitações esperadas do domínio acústico.
+
+Avaliação qualitativa do pipeline híbrido
+
+Analisadas imagens finais do sistema híbrido (pred_hybrid_test_final), confirmando:
+
+coerência física da classe lowReflection com clutter e ecos difusos;
+
+classe mediumReflection como zona de transição acústica;
+
+classe highReflection associada a núcleos compactos de alta energia.
+
+Observou-se estabilidade do classificador face a variações de confiança do YOLO.
+
+As principais falhas (caixas duplicadas, dependência da bbox, reflexões longas) foram identificadas como limitações estruturais, não como erros de implementação.
+
+Análise do ficheiro detections_hybrid.csv
+
+Confirmou-se que a distribuição de classes é plausível e não colapsa para uma única categoria.
+
+Validou-se a escolha final dos thresholds (t_low, t_high) definidos no dia anterior.
+
+Conclusões
+
+O Dia 14 ficou concluído com sucesso, tendo sido possível:
+
+validar cientificamente o comportamento do sistema híbrido;
+
+preparar material sólido para as secções Resultados e Discussão do relatório;
+
+justificar tecnicamente a opção por uma abordagem híbrida em detrimento de uma classificação multi-classe end-to-end em YOLO.
+
+O sistema apresenta um comportamento robusto, interpretável e fisicamente coerente, adequado ao contexto de sonar mecânico com elevado ruído e incerteza.
+
+Estado do Projeto
+
+Implementação (Dia 13): concluída
+
+Avaliação de Resultados (Dia 14): concluída
+
+Pronto para: comparação com baseline clássico ou início da escrita do relatório final

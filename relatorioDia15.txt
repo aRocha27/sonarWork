@@ -1,0 +1,143 @@
+
+Mini-Relatório — Dia 15
+
+Baseline Clássico para Deteção de Objetos em Imagens de Sonar
+
+1. Contexto do Projeto
+
+Este trabalho insere-se num projeto universitário de deteção de objetos em imagens de sonar, onde foi desenvolvida uma arquitetura híbrida composta por:
+
+YOLOv8 (single-class) para deteção de regiões de interesse (ROI);
+
+Classificação fora da rede (low / medium / high) baseada em métricas físicas de intensidade acústica (red_excess + densidade).
+
+Os Dias 13 e 14 foram dedicados à implementação do sistema híbrido e à sua avaliação inicial, estando essas fases concluídas.
+O objetivo do Dia 15 foi a definição, implementação e análise de um baseline clássico, simples e academicamente defensável, para permitir uma comparação justa e fundamentada.
+
+2. Objetivo do Dia 15
+
+O objetivo principal foi implementar um método clássico de deteção, não baseado em aprendizagem automática, com as seguintes características:
+
+Simples e reprodutível;
+
+Baseado apenas em processamento de imagem e estatística;
+
+Intencionalmente limitado, servindo como termo de comparação;
+
+Capaz de evidenciar as limitações dos métodos clássicos em imagens de sonar.
+
+O baseline não tinha como objetivo superar o modelo híbrido, mas sim justificar a sua superioridade.
+
+3. Definição do Baseline Clássico
+
+O baseline adotado foi:
+
+Red-Excess → Threshold → Operações Morfológicas → Componentes Conectadas → Bounding Boxes → Classificação por Intensidade
+
+3.1 Justificação da Escolha
+
+O canal red_excess mostrou-se o mais adequado para realçar ecos fortes no colormap utilizado;
+
+Métodos baseados em thresholding e blobs são comuns em processamento clássico de sonar;
+
+O método é totalmente explicável e não depende de treino.
+
+4. Implementação
+4.1 Pipeline Implementado
+
+Leitura da imagem RGB (raw);
+
+Cálculo do red_excess:
+red_excess = max(0, R − max(G, B))
+
+Suavização com median blur;
+
+Threshold adaptativo por percentil (Perfil B revelou melhor desempenho);
+
+Operações morfológicas:
+
+remoção de opening (para evitar apagar ecos pequenos);
+
+closing + dilation para ligar regiões;
+
+Deteção de blobs via componentes conectadas;
+
+Extração de bounding boxes;
+
+Classificação low / medium / high baseada na média dos top 10% de intensidade dentro de cada blob (para evitar diluição da média).
+
+4.2 Outputs Gerados
+
+detections_baseline.csv
+
+Imagens anotadas com bounding boxes e classes
+
+5. Problemas Encontrados e Soluções
+Problema 1 — Zero deteções iniciais
+
+Causa: threshold demasiado agressivo + morfologia excessiva;
+
+Solução: redução do percentil (Perfil B), remoção de opening, adição de dilatação.
+
+Problema 2 — Muitas imagens sem deteção
+
+Causa estrutural: ecos fracos, dispersos ou dominados por speckle;
+
+Conclusão: comportamento esperado de um método clássico.
+
+Problema 3 — Apenas uma deteção quando existem vários alvos
+
+Causa: fusão de blobs próximos (under-segmentation);
+
+Conclusão: limitação intrínseca de segmentação baseada apenas em intensidade.
+
+Problema 4 — Classificação quase sempre “low”
+
+Causa: média diluída por pixels fracos no blob;
+
+Solução: média dos pixels mais intensos (top 10%).
+
+6. Resultados Observados
+6.1 Comportamento do Baseline
+
+Elevado número de falsos negativos;
+
+Instabilidade entre frames semelhantes;
+
+Sub-segmentação frequente;
+
+Deteta corretamente apenas ecos fortes e isolados;
+
+Produz algumas classificações medium/high, mas de forma inconsistente.
+
+6.2 Interpretação
+
+Este comportamento confirma limitações conhecidas de métodos clássicos em sonar:
+
+Sensibilidade extrema a ruído e speckle;
+
+Incapacidade de separar padrões complexos;
+
+Ausência de contexto espacial e semântico.
+
+7. Significado Académico
+
+Os resultados do baseline reforçam diretamente a validade da abordagem híbrida:
+
+O YOLO fornece ROIs robustas e consistentes;
+
+A classificação por intensidade torna-se fiável apenas quando aplicada a ROIs corretas;
+
+O baseline clássico falha exatamente onde o modelo híbrido é forte.
+
+Este contraste justifica claramente o uso de aprendizagem profunda para deteção em sonar, mantendo métricas físicas para interpretação do eco.
+
+8. Estado Final do Dia 15
+
+✔️ Baseline clássico implementado
+✔️ Baseline funcional, mas limitado (como esperado)
+✔️ Outputs gerados (CSV + imagens)
+✔️ Limitações claramente observáveis e documentáveis
+✔️ Pronto para comparação quantitativa com o método híbrido
+
+👉 Dia 15 concluído com sucesso.

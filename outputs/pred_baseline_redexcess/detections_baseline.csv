@@ -1,0 +1,12 @@
+image,x1,y1,x2,y2,score,mean_red_excess,class
+dp10__4_dp_pre_pros_sonar_scan.png,458,912,465,917,0.9281045751633986,236.66666666666666,high
+dp10__4_dp_pre_pros_sonar_scan.png,370,1013,376,1019,0.9045751633986928,230.66666666666666,high
+dp10__7_dp_pre_pros_sonar_scan.png,420,1186,431,1201,0.5443137254901961,138.8,high
+dp2__8_dp_pre_pros_sonar_scan.png,769,292,778,297,0.85359477124183,217.66666666666666,high
+dp3__1_dp_pre_pros_sonar_scan.png,437,1187,447,1191,0.596078431372549,152.0,high
+dp3__5_dp_pre_pros_sonar_scan.png,437,1186,445,1190,0.6718954248366014,171.33333333333334,high
+dp8__1_dp_pre_pros_sonar_scan.png,429,956,435,961,0.9450980392156862,241.0,high
+dp8__1_dp_pre_pros_sonar_scan.png,513,922,519,927,0.9215686274509803,235.0,high
+dp8__1_dp_pre_pros_sonar_scan.png,504,921,510,926,0.9215686274509803,235.0,high
+dp9__4_dp_pre_pros_sonar_scan.png,533,879,541,885,0.9372549019607843,239.0,high
+dp9__4_dp_pre_pros_sonar_scan.png,515,882,525,890,0.9027450980392157,230.2,high

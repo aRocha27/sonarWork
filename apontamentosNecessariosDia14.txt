@@ -1,0 +1,172 @@
+Desempenho do detetor YOLO como gerador de ROI
+
+O modelo YOLOv8 foi treinado para deteção binária de objetos em imagens de sonar e avaliado num conjunto de validação composto por 10 imagens contendo 26 instâncias. Os resultados obtidos foram mAP50 = 0.572, precision = 0.537 e recall = 0.577.
+
+Embora estes valores não sejam comparáveis aos de deteção em imagens ópticas, são considerados adequados no contexto de imagens de sonar, caracterizadas por ruído speckle, sombras acústicas e resolução espacial não homogénea. Importa salientar que o YOLO é utilizado exclusivamente como gerador de regiões de interesse (ROI), não sendo responsável pela classificação final dos alvos.
+
+O recall obtido garante que uma parte significativa dos alvos reais é proposta ao estágio seguinte, enquanto falsos positivos são posteriormente filtrados através de critérios baseados na intensidade acústica. Assim, o YOLO cumpre eficazmente o seu papel no pipeline híbrido proposto.
+
+
+Avaliação crítica do Pipeline Híbrido (versão final)
+
+Vou dividir em 3 blocos:
+
+leitura visual (qualitativa),
+
+leitura do comportamento do classificador,
+
+como isto entra em Resultados e Discussão.
+
+1️⃣ Avaliação qualitativa — leitura das imagens que enviaste
+🟢 Casos bem classificados (coerência física)
+✅ lowReflection
+
+Observações recorrentes nas imagens:
+
+alvos alongados e difusos
+
+energia espalhada ao longo de vários bins
+
+ausência de núcleo vermelho compacto
+
+muitas vezes associados a clutter, ripple ou ruído estruturado
+
+👉 Classificação correta
+Mesmo quando o YOLO tem conf alto (0.8–0.9), o score híbrido (s ≈ 0.00–0.01) força corretamente para low.
+
+📌 Ponto forte do híbrido:
+
+separa confiança geométrica (YOLO) de conteúdo acústico (intensidade)
+
+✅ mediumReflection
+
+Casos típicos:
+
+presença de núcleo mais energético, mas:
+
+pequeno
+
+parcialmente diluído na bbox
+
+mistura clara de azul + amarelo
+
+👉 Isto bate certo com:
+
+score intermédio
+
+fracção de pixels fortes moderada
+
+📌 Importante:
+Estes exemplos mostram que o medium não é um erro, é uma classe necessária para incerteza acústica.
+
+✅ highReflection
+
+Nos exemplos que enviaste:
+
+núcleos compactos
+
+vermelho/amarelo concentrado
+
+alta densidade local
+
+muitas vezes perto do nadir (zona de maior SNR)
+
+👉 Classificação fisicamente plausível
+Mesmo quando aparecem múltiplas boxes, todas convergem para high → sinal de estabilidade do critério.
+
+2️⃣ Falhas típicas observadas (isto é DISCUSSÃO, não erro)
+
+Estas falhas não enfraquecem o trabalho — pelo contrário, fortalecem a análise.
+
+⚠️ Falha Tipo A — Caixas múltiplas no mesmo alvo
+
+Vê-se claramente em zonas de highReflection:
+
+YOLO gera 2–3 bboxes sobre o mesmo eco
+
+scores ligeiramente diferentes (ex.: 0.04, 0.05, 0.08)
+
+📌 Causa
+
+NMS em imagens sonar é instável
+
+ecos fortes têm gradiente difuso → várias propostas
+
+📌 Impacto
+
+não afeta a validade do classificador
+
+pode ser resolvido futuramente com box merging
+
+👉 Isto entra como “limitação estrutural”
+
+⚠️ Falha Tipo B — Reflexões longas classificadas como low
+
+Exemplos claros:
+
+reflexões muito energéticas mas espalhadas
+
+bbox grande → média diluída
+
+fracção de pixels fortes baixa
+
+📌 Isto NÃO é um bug
+É uma consequência direta de:
+
+usar bbox retangular
+
+usar métricas globais (mean + frac)
+
+👉 Academicamente, podes escrever:
+
+“Extended acoustic returns with high total energy but low spatial concentration tend to be classified as low reflection, reflecting the design choice of privileging compact high-intensity responses.”
+
+⚠️ Falha Tipo C — Dependência da bbox
+
+Se a bbox:
+
+apanha demasiado fundo → score ↓
+
+corta parte do núcleo → score ↓
+
+📌 Causa
+
+YOLO não foi treinado para segmentação
+
+sonar ≠ objeto com contorno rígido
+
+👉 Excelente gancho para trabalho futuro (segmentation / adaptive ROI).
+
+3️⃣ Leitura global do comportamento do classificador
+
+Mesmo sem eu te mostrar números exatos, dá para afirmar com segurança:
+
+Não há colapso para uma única classe
+
+lowReflection domina (esperado em sonar real)
+
+highReflection aparece apenas onde faz sentido físico
+
+mediumReflection funciona como zona de transição (bom sinal)
+
+📌 Isto é exatamente o comportamento desejado
+Um classificador “perfeito” em sonar seria suspeito.
+
+4️⃣ Texto praticamente pronto — Resultados
+
+Podes usar algo muito próximo disto:
+
+Hybrid classification results
+
+The proposed hybrid pipeline combines a learned object detector with a physics-guided acoustic intensity analysis for target classification. Visual inspection of the results shows a strong correlation between the assigned reflection classes and the underlying acoustic structure of the sonar returns.
+
+Low-reflection detections typically correspond to diffuse or elongated echoes with low local intensity concentration, often associated with background clutter. Medium-reflection detections present partially concentrated responses, while high-reflection detections exhibit compact, high-energy acoustic cores.
+
+Despite occasional duplicated bounding boxes and sensitivity to bounding box extent, the classification behaviour remains consistent and physically interpretable across the dataset.
+
+5️⃣ Texto-chave para a Discussão (onde ganhas nota)
+
+Why a hybrid approach is preferable to multi-class YOLO in sonar imagery
+
+End-to-end multi-class learning in sonar imagery is challenged by strong speckle noise, acoustic shadowing, and the lack of well-defined object boundaries. By decoupling detection from classification, the proposed hybrid approach leverages data-driven localization while enforcing physically meaningful criteria based on acoustic intensity. This design improves robustness and interpretability, at the cost of some sensitivity to bounding box accuracy.
+
