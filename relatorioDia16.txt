@@ -1,0 +1,172 @@
+Comparação Quantitativa: Baseline vs Método Híbrido
+
+1. Objetivo do Dia
+
+O objetivo principal do Dia 16 foi realizar uma comparação quantitativa final, imparcial e academicamente rigorosa entre:
+
+um baseline clássico de deteção (thresholding + blob detection), e
+
+um método híbrido, baseado em YOLOv8 para deteção de regiões de interesse (ROI) seguido de classificação acústica.
+
+Esta comparação teve como finalidade validar, de forma objetiva, se o método híbrido apresenta vantagens mensuráveis face a uma abordagem clássica, evitando qualquer tipo de tuning ou otimização artificial.
+
+2. Restrições Metodológicas (não negociáveis)
+
+Desde o início do dia foram impostas regras claras:
+
+❌ Não alterar parâmetros
+
+❌ Não afinar thresholds
+
+❌ Não criar variantes dos métodos
+
+❌ Não usar mAP no baseline
+
+✅ Usar exclusivamente o conjunto de teste
+
+✅ Aplicar exatamente os mesmos critérios de avaliação aos dois métodos
+
+Estas restrições garantem uma comparação justa, reprodutível e defensável em contexto académico.
+
+3. Conjunto de Avaliação
+
+Imagens de teste: data/images/test/
+
+Ground Truth: data/labels/test/ (formato YOLO)
+
+Número de imagens: 10
+
+Número total de instâncias GT: 18
+
+Formato do GT confirmado:
+
+class x_center y_center width height
+
+
+Coordenadas normalizadas em [0,1]
+
+Single-class (object)
+
+4. Critérios de Avaliação Definidos
+
+Foi estabelecido e validado um contrato científico explícito:
+
+IoU ≥ 0.5 para considerar uma deteção correta
+
+Matching greedy 1 Ground Truth ↔ 1 Predição
+
+Uma predição só pode ser usada uma vez
+
+Predições extra contam como False Positives
+
+Estes critérios são:
+
+standard na literatura,
+
+neutros (não favorecem nenhum método),
+
+simples de explicar em defesa oral.
+
+5. Implementação da Avaliação
+
+A avaliação foi realizada a partir de:
+
+detections_baseline.csv
+
+detections_hybrid.csv
+
+Passos executados:
+
+Conversão das caixas GT (normalizadas) para pixels, usando as dimensões reais das imagens;
+
+Cálculo de IoU entre cada predição e cada GT;
+
+Aplicação do matching greedy;
+
+Contabilização de TP, FP e FN;
+
+Cálculo das métricas finais:
+
+Precision
+
+Recall
+
+Falsos positivos por imagem
+
+Número médio de deteções por imagem
+
+Os resultados foram exportados para:
+
+metrics_comparison.csv
+
+tabelas prontas para integração no relatório.
+
+6. Resultados Obtidos
+
+Resumo quantitativo final:
+
+Método	Precision	Recall	FP / imagem	Deteções / imagem
+Baseline clássico	0.000	0.000	1.1	1.1
+Método híbrido	0.476	0.556	1.1	2.1
+
+Observação importante:
+
+O baseline produziu deteções, mas nenhuma atingiu IoU ≥ 0.5, devido a caixas muito pequenas ou mal localizadas.
+
+O método híbrido foi o único a produzir deteções válidas segundo critérios académicos.
+
+7. Análise Qualitativa de Suporte
+
+Foram selecionadas 6 imagens comparativas, cada uma contendo:
+
+imagem original,
+
+output do baseline,
+
+output do método híbrido.
+
+Estas figuras ilustram:
+
+falhas típicas do baseline (excesso de falsos positivos, caixas espúrias),
+
+ganhos claros do método híbrido,
+
+limitações residuais do híbrido (FPs em regiões de ruído ou reverberação).
+
+8. Discussão e Significado dos Resultados
+
+Os resultados confirmam que:
+
+Métodos clássicos baseados apenas em intensidade não são suficientes para deteção fiável em sonar;
+
+O uso de deep learning como detetor de ROI, mesmo sem classificação end-to-end, já traz ganhos substanciais;
+
+O método híbrido alcança um equilíbrio razoável entre sensibilidade e precisão, sem aumento do número médio de falsos positivos por imagem.
+
+O facto de o FP/imagem ser semelhante em ambos os métodos indica que o ganho em Recall do método híbrido não foi obtido à custa de degradação significativa da precisão, o que é um resultado positivo do ponto de vista prático.
+
+9. Limitações Identificadas
+
+Conjunto de teste pequeno (10 imagens);
+
+Incerteza espacial inerente às anotações de sonar;
+
+Critério IoU ≥ 0.5 é exigente para imagens acústicas;
+
+Avaliação estática (imagem a imagem), sem contexto temporal.
+
+Estas limitações foram assumidas conscientemente e não comprometem a validade comparativa do estudo.
+
+10. Conclusão do Dia 16
+
+O Dia 16 ficou concluído com sucesso, tendo sido possível:
+
+realizar uma comparação quantitativa justa e rigorosa;
+
+validar empiricamente a superioridade do método híbrido face ao baseline;
+
+produzir resultados, tabelas e figuras prontas para o relatório final;
+
+fechar a parte experimental do projeto com base sólida.
+
+O projeto encontra-se agora pronto para a fase seguinte: estruturação final do relatório e preparação para defesa.

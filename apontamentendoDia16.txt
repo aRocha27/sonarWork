@@ -1,0 +1,81 @@
+Resultado quantitativo final (TEST ONLY, análise fria)
+
+Conjunto de teste: 10 imagens, 18 instâncias GT (YOLO).
+Critérios (oficiais): IoU ≥ 0.5, matching greedy 1 GT ↔ 1 predição, predições extra = FP.
+
+Método	Precision	Recall	FP / imagem	Deteções / imagem	TP	FP	FN	GT	Pred
+Baseline	0.0000	0.0000	1.1	1.1	0	11	18	18	11
+Híbrido	0.4762	0.5556	1.1	2.1	10	11	8	18	21
+
+📌 Observação imparcial (importante): o baseline gerou caixas muito pequenas e/ou deslocadas face ao GT, resultando em IoU máximo ~0.03 nas predições — portanto 0 TPs com IoU≥0.5 (isto não é tuning, é apenas o efeito da regra de avaliação que definimos).
+
+5. Resultados Quantitativos
+
+A avaliação quantitativa foi realizada exclusivamente sobre o conjunto de teste, composto por 10 imagens de sonar contendo 18 instâncias anotadas (ground truth), seguindo rigorosamente os critérios definidos previamente:
+
+Intersection over Union (IoU ≥ 0.5);
+
+Matching greedy 1 Ground Truth ↔ 1 Predição;
+
+Predições não associadas a nenhuma GT contabilizadas como False Positives;
+
+Nenhum ajuste de parâmetros ou thresholds durante a avaliação.
+
+As métricas consideradas foram Precision, Recall, Falsos Positivos por imagem e Número médio de deteções por imagem, por serem adequadas tanto a métodos baseados em deep learning como a abordagens clássicas.
+
+A Tabela X apresenta os resultados obtidos para o baseline clássico e para o método híbrido proposto.
+
+Método	Precision	Recall	FP / imagem	Deteções / imagem
+Baseline clássico	0.000	0.000	1.1	1.1
+Método híbrido	0.476	0.556	1.1	2.1
+6. Discussão dos Resultados
+
+Os resultados quantitativos evidenciam diferenças claras entre o baseline clássico e o método híbrido, tanto em termos de desempenho como de comportamento dos erros.
+
+6.1 Baseline clássico
+
+O baseline clássico não obteve nenhuma deteção válida segundo o critério de IoU ≥ 0.5, resultando em Precision = 0.0 e Recall = 0.0.
+Apesar de gerar, em média, 1.1 deteções por imagem, todas as predições foram classificadas como False Positives ou apresentaram sobreposição insuficiente com as anotações de ground truth.
+
+Esta limitação deve-se principalmente a dois fatores estruturais do método:
+
+Caixas muito pequenas ou mal localizadas, frequentemente centradas apenas nos picos de intensidade;
+
+Ausência de informação contextual, típica de métodos baseados exclusivamente em thresholding e blob detection.
+
+É importante salientar que este resultado não invalida o baseline enquanto referência, mas confirma empiricamente a sua função esperada: servir como ponto de comparação mínimo, evidenciando a dificuldade intrínseca da deteção de objetos em imagens de sonar usando apenas técnicas clássicas.
+
+6.2 Método híbrido
+
+O método híbrido apresentou um desempenho substancialmente superior, com Recall = 0.556 e Precision = 0.476, demonstrando capacidade real de deteção de objetos relevantes no domínio acústico.
+
+O aumento do Recall indica que o método consegue identificar mais de metade dos objetos anotados, enquanto a Precision moderada revela ainda a presença de falsos positivos, especialmente em regiões de ruído estruturado ou reverberações intensas.
+
+O número médio de deteções por imagem (2.1) é superior ao do baseline, refletindo uma maior sensibilidade do sistema. No entanto, o valor de FP por imagem manteve-se semelhante (1.1), o que sugere que o ganho em Recall não foi acompanhado por um aumento proporcional de falsos positivos, um resultado positivo do ponto de vista prático.
+
+6.3 Comparação direta e implicações
+
+A comparação direta entre os métodos permite retirar três conclusões principais:
+
+O método híbrido é claramente superior ao baseline, sendo o único a produzir deteções válidas segundo critérios académicos padrão;
+
+O baseline confirma-se como inadequado para deteção precisa, mas útil como referência de dificuldade do problema;
+
+A arquitetura híbrida demonstra um equilíbrio razoável entre sensibilidade e precisão, apesar de ainda apresentar margem de melhoria na redução de falsos positivos.
+
+Estes resultados reforçam a adequação do uso de deep learning para deteção de regiões de interesse, combinado com classificação baseada em propriedades acústicas, como abordagem intermédia entre métodos puramente clássicos e soluções totalmente end-to-end.
+
+6.4 Limitações da avaliação
+
+Algumas limitações devem ser consideradas na interpretação dos resultados:
+
+O conjunto de teste é relativamente pequeno (10 imagens), o que limita a significância estatística absoluta;
+
+As anotações de ground truth em sonar estão sujeitas a incerteza espacial, tornando o critério IoU ≥ 0.5 particularmente exigente;
+
+Não foi realizada otimização de parâmetros, por decisão metodológica, privilegiando a comparação justa e reprodutível.
+
+6.5 Síntese
+
+Em síntese, a avaliação quantitativa confirma que o método híbrido representa um avanço concreto face ao baseline clássico, validando a arquitetura proposta e justificando a sua utilização em contextos de análise de sonar onde métodos tradicionais falham.
+

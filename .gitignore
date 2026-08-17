@@ -1,0 +1,31 @@
+# Data, outputs, and training runs (large artifacts — not source)
+data/
+runs/
+outputs/
+SaveData/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Models and archives
+*.pt
+*.zip
+*.tar.gz
+*.tar
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
